@@ -40,6 +40,7 @@ class vncSockConnect;
 #include "VSocket.h"
 #include "vncServer.h"
 #include <omnithread.h>
+#include <dns_sd.h>
 
 // The vncSockConnect class itself
 class vncSockConnect
@@ -59,6 +60,9 @@ protected:
 
 	// The port to listen on
 	UINT m_port;
+
+	// For Bonjour
+	DNSServiceRef m_sdRef;
 
 	// The in-coming accept thread
 	omni_thread *m_thread;

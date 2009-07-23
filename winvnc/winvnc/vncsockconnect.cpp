@@ -31,11 +31,14 @@
 #include "vncSockConnect.h"
 #include "vncServer.h"
 #include <omnithread.h>
+#include <dns_sd.h>
 
 #ifdef HTTP_SAMEPORT
 // Added for HTTP-via-RFB
 VBool maybeHandleHTTPRequest(VSocket* sock,vncServer* svr);
 #endif
+
+typedef union { unsigned char b[2]; unsigned short NotAnInteger; } Opaque16;
 
 // The function for the spawned thread to run
 class vncSockConnectThread : public omni_thread
@@ -170,6 +173,16 @@ vncSockConnect::~vncSockConnect()
     m_socket.Shutdown();
 	m_socket.Close();
 
+	HMODULE hModule = LoadLibrary("dnssd.dll");
+	if (hModule)
+	{
+		typedef void (DNSSD_API *DNSServiceRefDeallocateFn)(DNSServiceRef sdRef);
+		DNSServiceRefDeallocateFn aFunc = 0;
+		aFunc = (DNSServiceRefDeallocateFn)GetProcAddress(hModule, "DNSServiceRefDeallocate");
+		if (m_sdRef) aFunc(m_sdRef);
+		FreeLibrary(hModule);
+	}
+
     // Join with our lovely thread
     if (m_thread != NULL)
     {
@@ -190,6 +203,7 @@ vncSockConnect::~vncSockConnect()
 	m_socket.Close();
     }
 }
+
 
 BOOL vncSockConnect::Init(vncServer *server, UINT port)
 {
@@ -212,6 +226,32 @@ BOOL vncSockConnect::Init(vncServer *server, UINT port)
 	m_thread = new vncSockConnectThread;
 	if (m_thread == NULL)
 		return FALSE;
+
+	// Register server with mDNS daemon
+	
+	HMODULE hModule = LoadLibrary("dnssd.dll");
+	if (hModule)
+	{
+		typedef DNSServiceErrorType (DNSSD_API *DNSServiceRegisterFn)(
+			DNSServiceRef           *sdRef, 
+			DNSServiceFlags          flags,
+			uint32_t                 interfaceIndex,
+			const char              *name,         /* may be NULL */
+			const char              *regtype,
+			const char              *domain,       /* may be NULL */
+			const char              *host,         /* may be NULL */
+			uint16_t                 port,
+			uint16_t                 txtLen,
+			const void              *txtRecord,    /* may be NULL */
+			DNSServiceRegisterReply  callBack,      /* may be NULL */
+			void                    *context       /* may be NULL */
+			);
+		DNSServiceRegisterFn aFunc = 0;
+		aFunc = (DNSServiceRegisterFn)GetProcAddress(hModule, "DNSServiceRegister");
+		Opaque16 registerPort = { { port >> 8, port & 0xFF } };
+		aFunc(&m_sdRef, 0, 0, NULL, "_rfb._tcp", NULL, NULL, registerPort.NotAnInteger, 0, NULL, NULL, NULL);
+		FreeLibrary(hModule);
+	}
 
 	// And start it running
 	return ((vncSockConnectThread *)m_thread)->Init(&m_socket, server);

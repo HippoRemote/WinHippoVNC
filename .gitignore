@@ -1,4 +1,6 @@
 Debug/
+winvnc/logger/
+winvnc/ms-logon/
 *.ncb
 *.suo
 *.vcproj.*

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9,00"
+	Version="9.00"
 	Name="winvnc"
 	ProjectGUID="{C05AE605-1250-4F58-911B-EC99AE2C25AF}"
 	RootNamespace="winvnc"
@@ -51,7 +51,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\omnithread,..,..\.."
+				AdditionalIncludeDirectories="..\bonjour,..\omnithread,..,..\.."
 				PreprocessorDefinitions="_DEBUG;__x86__;__WIN32__;WIN32;_WINDOWS;_WIN32_WINNT=0x501;XMD_H;_WINSTATIC;_CRT_SECURE_NO_WARNINGS;_VC80;_WIN32_IE=0x0600"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -84,6 +84,7 @@
 				OutputFile=".\..\Debug/winvnc.exe"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
+				AdditionalLibraryDirectories=""
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile=".\..\Debug/winvnc.pdb"
 				SubSystem="2"
@@ -4017,6 +4018,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\bonjour\dns_sd.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\DSMPlugin\DSMPlugin.h"
 				>
 			</File>
@@ -4310,11 +4315,11 @@
 				>
 			</File>
 			<File
-				RelativePath="vnc.bmp"
+				RelativePath="res\vnc.bmp"
 				>
 			</File>
 			<File
-				RelativePath="res\vnc.bmp"
+				RelativePath="vnc.bmp"
 				>
 			</File>
 			<File
@@ -4355,11 +4360,11 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\BUILDING.txt"
+			RelativePath="..\building.txt"
 			>
 		</File>
 		<File
-			RelativePath="..\building.txt"
+			RelativePath="..\..\BUILDING.txt"
 			>
 		</File>
 		<File
