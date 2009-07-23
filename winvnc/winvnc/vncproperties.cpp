@@ -1659,7 +1659,7 @@ LABELUSERSETTINGS:
 	// Set the default user prefs
 	vnclog.Print(LL_INTINFO, VNCLOG("clearing user settings\n"));
 	m_pref_AutoPortSelect=TRUE;
-    m_pref_HTTPConnect = TRUE;
+    m_pref_HTTPConnect = FALSE;
 	m_pref_XDMCPConnect = TRUE;
 	m_pref_PortNumber = RFB_PORT_OFFSET; 
 	m_pref_SockConnect=TRUE;
@@ -1676,8 +1676,8 @@ LABELUSERSETTINGS:
 	m_pref_EnableJapInput=FALSE;
 	m_pref_LockSettings=-1;
 
-	m_pref_RemoveWallpaper=TRUE;
-	m_pref_RemoveAero=TRUE;
+	m_pref_RemoveWallpaper=FALSE;
+	m_pref_RemoveAero=FALSE;
     m_alloweditclients = TRUE;
 	m_allowshutdown = TRUE;
 	m_allowproperties = TRUE;
@@ -1688,7 +1688,7 @@ LABELUSERSETTINGS:
 	m_pref_UseDSMPlugin = FALSE;
 	*m_pref_szDSMPlugin = '\0';
 
-	m_pref_EnableFileTransfer = TRUE;
+	m_pref_EnableFileTransfer = FALSE;
 	m_pref_FTUserImpersonation = TRUE;
 	m_pref_EnableBlankMonitor = TRUE;
 	m_pref_DefaultScale = 1;
@@ -2170,7 +2170,7 @@ void vncProperties::LoadFromIniFile()
 	// Set the default user prefs
 	vnclog.Print(LL_INTINFO, VNCLOG("clearing user settings\n"));
 	m_pref_AutoPortSelect=TRUE;
-    m_pref_HTTPConnect = TRUE;
+    m_pref_HTTPConnect = FALSE;
 	m_pref_XDMCPConnect = TRUE;
 	m_pref_PortNumber = RFB_PORT_OFFSET; 
 	m_pref_SockConnect=TRUE;
@@ -2187,8 +2187,8 @@ void vncProperties::LoadFromIniFile()
 	m_pref_EnableJapInput=FALSE;
 	m_pref_LockSettings=-1;
 
-	m_pref_RemoveWallpaper=TRUE;
-	m_pref_RemoveAero=TRUE;
+	m_pref_RemoveWallpaper=FALSE;
+	m_pref_RemoveAero=FALSE;
     m_alloweditclients = TRUE;
 	m_allowshutdown = TRUE;
 	m_allowproperties = TRUE;
@@ -2198,7 +2198,7 @@ void vncProperties::LoadFromIniFile()
 	m_pref_UseDSMPlugin = FALSE;
 	*m_pref_szDSMPlugin = '\0';
 
-	m_pref_EnableFileTransfer = TRUE;
+	m_pref_EnableFileTransfer = FALSE;
 	m_pref_FTUserImpersonation = TRUE;
 	m_pref_EnableBlankMonitor = TRUE;
 	m_pref_DefaultScale = 1;
