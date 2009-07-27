@@ -1,5 +1,11 @@
 Debug/
 Release/
+winvnc/logger/MSG00001.bin
+winvnc/logger/messages.h
+winvnc/logger/messages.rc
+winvnc/logger/messages.res
+winvnc/ms-logon/MSLogonACL/buildtime.h
+winvnc/ms-logon/authSSP/buildtime.h
 *.ncb
 *.suo
 *.vcproj.*
