@@ -3,7 +3,7 @@
 
 HippoVNC is a fork of the excellent UltraVNC. The purpose of the fork is to extend VNC with features better suited to couch surfing via remotes like HippoRemote.
 
-[download](http://hipporemote.com/hippovnc/hippovnc.zip)
+[download](http://hipporemote.com/HippoVNC/HippoVNC.zip)
 
 ##Version History
 
