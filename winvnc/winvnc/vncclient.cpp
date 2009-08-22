@@ -759,8 +759,7 @@ else
 		sprintf((char *)protocolMsg,
 				rfbProtocolVersionFormat,
 				rfbProtocolMajorVersion,
-				rfbProtocolMinorVersion + (m_server->MSLogonRequired() ? 0 : 2)); // 4: mslogon+FT,
-																			  // 6: VNClogon+FT
+				rfbProtocolMinorVersion);
 }
 		// Send the protocol message
 		//m_socket->SetTimeout(0); // sf@2006 - Trying to fix neverending authentication bug - Not sure it's a good idea...
@@ -1966,6 +1965,31 @@ vncClientThread::run(void *arg)
 			}
 			break;
 
+		case rfbUnicodeKeyEvent:
+			// Read the rest of the message:
+			if (m_socket->ReadExact(((char *) &msg)+nTO, sz_rfbKeyEventMsg-nTO))
+			{				
+				if (m_client->m_keyboardenabled)
+				{
+					msg.ke.key = Swap32IfLE(msg.ke.key);
+
+					if (m_client->Sendinput.isValid())
+					{							
+						INPUT evt;
+						evt.type = INPUT_KEYBOARD;
+						evt.ki.wVk = 0;
+						evt.ki.dwFlags = KEYEVENTF_UNICODE;
+						if (msg.ke.down == 0) evt.ki.dwFlags |= KEYEVENTF_KEYUP;
+						evt.ki.time = 0;
+						evt.ki.wScan = (unsigned short)msg.ke.key;
+						evt.ki.dwExtraInfo = 0;
+						(*m_client->Sendinput)(1, &evt, sizeof(evt));
+						m_client->m_remoteevent = TRUE;
+					}
+				}
+			}
+			break;
+
 		case rfbPointerEvent:
 			// Read the rest of the message:
 			if (m_socket->ReadExact(((char *) &msg)+nTO, sz_rfbPointerEventMsg-nTO))
@@ -2065,6 +2089,149 @@ vncClientThread::run(void *arg)
 								msg.pe.y=msg.pe.y-GetSystemMetrics(SM_YVIRTUALSCREEN);
 								evt.mi.dx = (msg.pe.x * 65535) / (GetSystemMetrics(SM_CXVIRTUALSCREEN)-1);
 								evt.mi.dy = (msg.pe.y* 65535) / (GetSystemMetrics(SM_CYVIRTUALSCREEN)-1);
+								evt.mi.dwFlags = flags | MOUSEEVENTF_VIRTUALDESK;
+								evt.mi.dwExtraInfo = 0;
+								evt.mi.mouseData = wheel_movement;
+								evt.mi.time = 0;
+								(*m_client->Sendinput)(1, &evt, sizeof(evt));
+							}
+							else
+							{
+								POINT cursorPos; GetCursorPos(&cursorPos);
+								ULONG oldSpeed, newSpeed = 10;
+								ULONG mouseInfo[3];
+								if (flags & MOUSEEVENTF_MOVE) 
+									{
+										flags &= ~MOUSEEVENTF_ABSOLUTE;
+										SystemParametersInfo(SPI_GETMOUSE, 0, &mouseInfo, 0);
+										SystemParametersInfo(SPI_GETMOUSESPEED, 0, &oldSpeed, 0);
+										ULONG idealMouseInfo[] = {10, 0, 0};
+										SystemParametersInfo(SPI_SETMOUSESPEED, 0, &newSpeed, 0);
+										SystemParametersInfo(SPI_SETMOUSE, 0, &idealMouseInfo, 0);
+									}
+								::mouse_event(flags, msg.pe.x-cursorPos.x, msg.pe.y-cursorPos.y, wheel_movement, 0);
+								if (flags & MOUSEEVENTF_MOVE) 
+									{
+										SystemParametersInfo(SPI_SETMOUSE, 0, &mouseInfo, 0);
+										SystemParametersInfo(SPI_SETMOUSESPEED, 0, &oldSpeed, 0);
+									}
+							}
+					}
+					// Save the old position
+					m_client->m_ptrevent = msg.pe;
+
+					// Flag that a remote event occurred
+					m_client->m_remoteevent = TRUE;
+
+					// Tell the desktop hook system to grab the screen...
+					m_client->m_encodemgr.m_buffer->m_desktop->TriggerUpdate();
+				}
+			}	
+			break;
+
+		case rfbDeltaPointerEvent:
+			// Read the rest of the message:
+			if (m_socket->ReadExact(((char *) &msg)+nTO, sz_rfbPointerEventMsg-nTO))
+			{
+				if (m_client->m_pointerenabled)
+				{
+					// Convert the coords to Big Endian
+					// Modif sf@2002 - Scaling
+					msg.pe.x = (Swap16IfLE(msg.pe.x) + m_client->m_SWOffsetx+m_client->m_ScreenOffsetx) * m_client->m_nScale;
+					msg.pe.y = (Swap16IfLE(msg.pe.y) + m_client->m_SWOffsety+m_client->m_ScreenOffsety) * m_client->m_nScale;
+
+					// Work out the flags for this event
+					DWORD flags = 0;
+
+					if (msg.pe.x != m_client->m_ptrevent.x ||
+						msg.pe.y != m_client->m_ptrevent.y)
+						flags |= MOUSEEVENTF_MOVE;
+					if ( (msg.pe.buttonMask & rfbButton1Mask) != 
+						(m_client->m_ptrevent.buttonMask & rfbButton1Mask) )
+					{
+					    if (GetSystemMetrics(SM_SWAPBUTTON))
+						flags |= (msg.pe.buttonMask & rfbButton1Mask) 
+						    ? MOUSEEVENTF_RIGHTDOWN : MOUSEEVENTF_RIGHTUP;
+					    else
+						flags |= (msg.pe.buttonMask & rfbButton1Mask) 
+						    ? MOUSEEVENTF_LEFTDOWN : MOUSEEVENTF_LEFTUP;
+					}
+					if ( (msg.pe.buttonMask & rfbButton2Mask) != 
+						(m_client->m_ptrevent.buttonMask & rfbButton2Mask) )
+					{
+						flags |= (msg.pe.buttonMask & rfbButton2Mask) 
+						    ? MOUSEEVENTF_MIDDLEDOWN : MOUSEEVENTF_MIDDLEUP;
+					}
+					if ( (msg.pe.buttonMask & rfbButton3Mask) != 
+						(m_client->m_ptrevent.buttonMask & rfbButton3Mask) )
+					{
+					    if (GetSystemMetrics(SM_SWAPBUTTON))
+						flags |= (msg.pe.buttonMask & rfbButton3Mask) 
+						    ? MOUSEEVENTF_LEFTDOWN : MOUSEEVENTF_LEFTUP;
+					    else
+						flags |= (msg.pe.buttonMask & rfbButton3Mask) 
+						    ? MOUSEEVENTF_RIGHTDOWN : MOUSEEVENTF_RIGHTUP;
+					}
+
+
+					// Treat buttons 4 and 5 presses as mouse wheel events
+					DWORD wheel_movement = 0;
+					if (m_client->m_encodemgr.IsMouseWheelTight())
+					{
+						if ((msg.pe.buttonMask & rfbButton4Mask) != 0 &&
+							(m_client->m_ptrevent.buttonMask & rfbButton4Mask) == 0)
+						{
+							flags |= MOUSEEVENTF_WHEEL;
+							wheel_movement = (DWORD)+120;
+						}
+						else if ((msg.pe.buttonMask & rfbButton5Mask) != 0 &&
+								 (m_client->m_ptrevent.buttonMask & rfbButton5Mask) == 0)
+						{
+							flags |= MOUSEEVENTF_WHEEL;
+							wheel_movement = (DWORD)-120;
+						}
+					}
+					else
+					{
+						// RealVNC 335 Mouse wheel support
+						if (msg.pe.buttonMask & rfbWheelUpMask) {
+							flags |= MOUSEEVENTF_WHEEL;
+							wheel_movement = WHEEL_DELTA;
+						}
+						if (msg.pe.buttonMask & rfbWheelDownMask) {
+							flags |= MOUSEEVENTF_WHEEL;
+							wheel_movement = -WHEEL_DELTA;
+						}
+					}
+
+					// Generate coordinate values
+					// bug fix John Latino
+					// offset for multi display
+					int screenX, screenY, screenDepth;
+					m_server->GetScreenInfo(screenX, screenY, screenDepth);
+//					vnclog.Print(LL_INTINFO, VNCLOG("########mouse :%i %i %i %i \n"),screenX, screenY,m_client->m_ScreenOffsetx,m_client->m_ScreenOffsety );
+					if (m_client->m_display_type==1)
+						{//primary display always have (0,0) as corner
+							//unsigned long x = (msg.pe.x *  65535) / (screenX-1);
+							//unsigned long y = (msg.pe.y * 65535) / (screenY-1);
+							signed long x = msg.pe.x - 32768;
+							signed long y = msg.pe.y - 32768;
+							// Do the pointer event
+							::mouse_event(flags, (DWORD) x, (DWORD) y, wheel_movement, 0);
+//							vnclog.Print(LL_INTINFO, VNCLOG("########mouse_event :%i %i \n"),x,y);
+						}
+					else
+						{//second or spanned
+							if (m_client->Sendinput.isValid())
+							{							
+								INPUT evt;
+								evt.type = INPUT_MOUSE;
+								msg.pe.x=msg.pe.x-GetSystemMetrics(SM_XVIRTUALSCREEN);
+								msg.pe.y=msg.pe.y-GetSystemMetrics(SM_YVIRTUALSCREEN);
+								//evt.mi.dx = ((msg.pe.x-1000) * 65535) / (GetSystemMetrics(SM_CXVIRTUALSCREEN)-1);
+								//evt.mi.dy = ((msg.pe.y-1000) * 65535) / (GetSystemMetrics(SM_CYVIRTUALSCREEN)-1);
+								evt.mi.dx = msg.pe.x - 32768;
+								evt.mi.dy = msg.pe.y - 32768;
 								evt.mi.dwFlags = flags | MOUSEEVENTF_VIRTUALDESK;
 								evt.mi.dwExtraInfo = 0;
 								evt.mi.mouseData = wheel_movement;

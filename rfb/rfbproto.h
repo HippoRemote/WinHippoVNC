@@ -163,8 +163,8 @@ typedef struct {
  */
 
 #define rfbProtocolVersionFormat "RFB %03d.%03d\n"
-#define rfbProtocolMajorVersion 3
-#define rfbProtocolMinorVersion 4 // Reserved to UltravNC ! (as well as "6")
+#define rfbProtocolMajorVersion 888
+#define rfbProtocolMinorVersion 1 // Reserved to UltravNC ! (as well as "6")
 
 typedef char rfbProtocolVersionMsg[13];	/* allow extra byte for null */
 
@@ -305,6 +305,8 @@ typedef struct {
 #endif
 #define rfbKeepAlive 13 // 16 July 2008 jdp -- bidirectional
 #define rfbPalmVNCSetScaleFactor 0xF // PalmVNC 1.4 & 2.0 SetScale Factor message
+#define rfbUnicodeKeyEvent 24
+#define rfbDeltaPointerEvent 25
 
 
 
