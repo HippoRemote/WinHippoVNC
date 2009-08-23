@@ -746,23 +746,13 @@ vncClientThread::InitVersion()
 	{
 		// Generate the server's protocol version
 		rfbProtocolVersionMsg protocolMsg;
-if (SPECIAL_SC_PROMPT)
-{
-	//This break rfb protocol, SC in ultravnc only  rfb 3.14/16
-	sprintf((char *)protocolMsg,
-			rfbProtocolVersionFormat,
-			rfbProtocolMajorVersion,
-			rfbProtocolMinorVersion +10+ (m_server->MSLogonRequired() ? 0 : 2));
-}
-else
-{
+
 		sprintf((char *)protocolMsg,
 				rfbProtocolVersionFormat,
 				rfbProtocolMajorVersion,
 				rfbProtocolMinorVersion);
-}
+
 		// Send the protocol message
-		//m_socket->SetTimeout(0); // sf@2006 - Trying to fix neverending authentication bug - Not sure it's a good idea...
 		if (!m_socket->SendExact((char *)&protocolMsg, sz_rfbProtocolVersionMsg))
 			return FALSE;
 
@@ -771,46 +761,18 @@ else
 			return FALSE;
 	}
 	else 
-		memcpy(protocol_ver,m_client->ProtocolVersionMsg, sz_rfbProtocolVersionMsg);
+		memcpy(protocol_ver, m_client->ProtocolVersionMsg, sz_rfbProtocolVersionMsg);
 
 	// sf@2006 - Trying to fix neverending authentication bug - Check if this is RFB protocole
-	if (strncmp(protocol_ver,"RFB", 3)!=NULL)
+	if (strncmp(protocol_ver, "RFB", 3)!=NULL)
 		return FALSE;
 
 	// Check viewer's the protocol version
 	int major, minor;
 	sscanf((char *)&protocol_ver, rfbProtocolVersionFormat, &major, &minor);
-	if (major != rfbProtocolMajorVersion)
+	if ((major != rfbProtocolMajorVersion) || (minor != rfbProtocolMinorVersion))
 		return FALSE;
 
-	// TODO: Maybe change this UltraVNC specific minor value because
-	// TightVNC viewer uses minor = 5 ...
-	// For now:
-	// UltraViewer always sends minor = 4 (sf@2005: or 6, as it returns the minor version received from the server)
-	// UltraServer sends minor = 4 or minor = 6
-	// m_ms_logon = false; // For all non-UltraVNC logon compatible viewers
-	m_ms_logon = m_server->MSLogonRequired();
-	vnclog.Print(LL_INTINFO, VNCLOG("m_ms_logon set to %s"), m_ms_logon ? "true" : "false");
-	//SC
-	if (minor == 4 || minor == 6) m_client->SetUltraViewer(true);
-	else if ((minor ==14 || minor ==16)&& SPECIAL_SC_PROMPT)
-	{
-		m_client->SetUltraViewer(true);
-		char mytext[1024];
-		getinfo(mytext);
-		int size=strlen(mytext);
-		if (!m_socket->SendExact((char *)&size, sizeof(int)))
-		return FALSE;
-		if (!m_socket->SendExact((char *)mytext, size))
-		return FALSE;
-		int nummer;
-		if (!m_socket->ReadExact((char *)&nummer, sizeof(int)))
-		{
-			return FALSE;
-		}
-		if (nummer==0) return FALSE;
-	}
-	else m_client->SetUltraViewer(false); // sf@2005 - Fix Open TextChat from server bug 
 	return TRUE;
 }
 
@@ -974,6 +936,22 @@ vncClientThread::InitAuthenticate()
 
 	}
 
+	// Send security types.
+	if (1)
+	{
+		CARD8 list[3];
+		list[0] = (CARD8)2;
+		list[1] = (CARD8)80;
+		list[2] = (CARD8)rfbVncAuth;
+		if (!m_socket->SendExact((char *)&list, sizeof(list)))
+			return FALSE;
+		CARD8 type;
+		if (!m_socket->ReadExact((char *)&type, sizeof(type)))
+			return FALSE;
+		if ((type != 80) && (type != rfbVncAuth))
+			return FALSE;
+	}
+
 	// Authenticate the connection, if required
 	if (m_auth || (strlen(plain) == 0))
 	{
@@ -982,17 +960,14 @@ vncClientThread::InitAuthenticate()
 		if (!m_socket->SendExact((char *)&auth_val, sizeof(auth_val)))
 			return FALSE;
 	}
-	else if (m_ms_logon) /*(mslogon && !oldmslogon) TODO*/
-	{
-		if (!AuthMsLogon())
-			return FALSE;
-	}
 	else
 	{
+		/*
 		// Send auth-required message
 		CARD32 auth_val = Swap32IfLE(rfbVncAuth);
 		if (!m_socket->SendExact((char *)&auth_val, sizeof(auth_val)))
 			return FALSE;
+		*/
 
 		BOOL auth_ok = TRUE;
 		{
@@ -1018,92 +993,30 @@ vncClientThread::InitAuthenticate()
 			vncRandomBytesMs((BYTE *)&challengems);
 
 			// Send the challenge to the client
-			// m_ms_logon = false;
-			if (m_ms_logon)
+			vnclog.Print(LL_INTINFO, "password authentication");
+			if (!m_socket->SendExact(challenge, sizeof(challenge)))
 			{
-				vnclog.Print(LL_INTINFO, "MS-Logon authentication");
-				if (!m_socket->SendExact(challengems, sizeof(challengems)))
-					return FALSE;
-				if (!m_socket->SendExact(challenge, sizeof(challenge)))
-						return FALSE;
-				if (!m_socket->ReadExact(user, sizeof(char)*256))
-					return FALSE;
-				if (!m_socket->ReadExact(domain, sizeof(char)*256))
-					return FALSE;
-				// Read the response
-				if (!m_socket->ReadExact(responsems, sizeof(responsems)))
-					return FALSE;
-				if (!m_socket->ReadExact(response, sizeof(response)))
-						return FALSE;
-				
-				// TODO: Improve this... 
-				for (int i = 0; i < 32 ;i++)
-				{
-					passwordMs[i] = challengems[i]^responsems[i];
-				}
-
-				// REM: Instead of the fixedkey, we could use VNC password
-				// -> the user needs to enter the VNC password on viewer's side.
-				plainmsPasswd = vncDecryptPasswdMs((char *)passwordMs);
-
-				// We let it as is right now for testing purpose.
-				if (strlen(user) == 0 && !m_server->MSLogonRequired())
-				{
-					vnclog.Print(LL_INTINFO, "No user specified, mslogon not required");
-					vncEncryptBytes((BYTE *)&challenge, plain);
-	
-					// Compare them to the response
-					for (int i=0; i<sizeof(challenge); i++)
-					{
-						if (challenge[i] != response[i])
-						{
-							auth_ok = FALSE;
-							break;
-						}
-					}
-				}
-				else 
-				{
-					vnclog.Print(LL_INTINFO, "User specified or mslogon required");
-					int result=CheckUserGroupPasswordUni(user,plainmsPasswd,m_client->GetClientName());
-					vnclog.Print(LL_INTINFO, "CheckUserGroupPasswordUni result=%i", result);
-					if (result==0) auth_ok = FALSE;
-					if (result==2)
-					{
-						m_client->EnableKeyboard(false);
-						m_client->EnablePointer(false);
-					}
-				}
-				if (plainmsPasswd) free(plainmsPasswd);
-				plainmsPasswd=NULL;
+				vnclog.Print(LL_SOCKERR, VNCLOG("Failed to send challenge to client\n"));
+				return FALSE;
 			}
-			else
+
+
+			// Read the response
+			if (!m_socket->ReadExact(response, sizeof(response)))
 			{
-				vnclog.Print(LL_INTINFO, "password authentication");
-				if (!m_socket->SendExact(challenge, sizeof(challenge)))
-                {
-					vnclog.Print(LL_SOCKERR, VNCLOG("Failed to send challenge to client\n"));
-					return FALSE;
-                }
+				vnclog.Print(LL_SOCKERR, VNCLOG("Failed to receive challenge response from client\n"));
+				return FALSE;
+			}
+			// Encrypt the challenge bytes
+			vncEncryptBytes((BYTE *)&challenge, plain);
 
-
-				// Read the response
-				if (!m_socket->ReadExact(response, sizeof(response)))
-                {
-					vnclog.Print(LL_SOCKERR, VNCLOG("Failed to receive challenge response from client\n"));
-					return FALSE;
-                }
-				// Encrypt the challenge bytes
-				vncEncryptBytes((BYTE *)&challenge, plain);
-
-				// Compare them to the response
-				for (int i=0; i<sizeof(challenge); i++)
+			// Compare them to the response
+			for (int i=0; i<sizeof(challenge); i++)
+			{
+				if (challenge[i] != response[i])
 				{
-					if (challenge[i] != response[i])
-					{
-						auth_ok = FALSE;
-						break;
-					}
+					auth_ok = FALSE;
+					break;
 				}
 			}
 		}

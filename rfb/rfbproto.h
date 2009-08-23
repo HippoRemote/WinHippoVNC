@@ -163,8 +163,8 @@ typedef struct {
  */
 
 #define rfbProtocolVersionFormat "RFB %03d.%03d\n"
-#define rfbProtocolMajorVersion 888
-#define rfbProtocolMinorVersion 1 // Reserved to UltravNC ! (as well as "6")
+#define rfbProtocolMajorVersion 3
+#define rfbProtocolMinorVersion 8
 
 typedef char rfbProtocolVersionMsg[13];	/* allow extra byte for null */
 
