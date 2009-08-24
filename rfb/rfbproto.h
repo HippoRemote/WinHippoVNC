@@ -305,6 +305,7 @@ typedef struct {
 #endif
 #define rfbKeepAlive 13 // 16 July 2008 jdp -- bidirectional
 #define rfbPalmVNCSetScaleFactor 0xF // PalmVNC 1.4 & 2.0 SetScale Factor message
+#define rfbVKKeyEvent 23
 #define rfbUnicodeKeyEvent 24
 #define rfbDeltaPointerEvent 25
 

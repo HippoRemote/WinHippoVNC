@@ -1878,6 +1878,31 @@ vncClientThread::run(void *arg)
 			}
 			break;
 
+		case rfbVKKeyEvent:
+			// Read the rest of the message:
+			if (m_socket->ReadExact(((char *) &msg)+nTO, sz_rfbKeyEventMsg-nTO))
+			{				
+				if (m_client->m_keyboardenabled)
+				{
+					msg.ke.key = Swap32IfLE(msg.ke.key);
+
+					if (m_client->Sendinput.isValid())
+					{							
+						INPUT evt;
+						evt.type = INPUT_KEYBOARD;
+						evt.ki.wVk = (unsigned short)msg.ke.key;
+						evt.ki.dwFlags = 0;
+						if (msg.ke.down == 0) evt.ki.dwFlags |= KEYEVENTF_KEYUP;
+						evt.ki.time = 0;
+						evt.ki.wScan = 0;
+						evt.ki.dwExtraInfo = 0;
+						(*m_client->Sendinput)(1, &evt, sizeof(evt));
+						m_client->m_remoteevent = TRUE;
+					}
+				}
+			}
+			break;
+
 		case rfbUnicodeKeyEvent:
 			// Read the rest of the message:
 			if (m_socket->ReadExact(((char *) &msg)+nTO, sz_rfbKeyEventMsg-nTO))
