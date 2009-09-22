@@ -1231,8 +1231,6 @@ void GetIPString(char *buffer, int buflen)
     }
 }
 
-
-
 void
 vncClientThread::run(void *arg)
 {
@@ -1861,6 +1859,109 @@ vncClientThread::run(void *arg)
 			}
 			break;
 
+		case 26:
+			unsigned char length;
+			if (m_socket->ReadExact((char *)(&length), 1)) {
+				// Read message.
+				char *buffer = (char *)malloc(length);
+				m_socket->ReadExact((char *)buffer, length);
+
+				// Convert bytes into unicode.
+				TCHAR *profileName = (TCHAR *)malloc(sizeof(TCHAR) * (length/2) + 1);
+				int i;
+				for (i=0; i<(length/2); i++)
+				{
+					profileName[i] = (buffer[2*i] << 8) + buffer[2*i+1];
+				}
+				profileName[length/2] = 0;
+				OutputDebugString(profileName);
+
+				// See if AHK file exists.
+				TCHAR exe_path[1024];
+				TCHAR ahk_path[1024];
+				TCHAR *aPtr;
+
+				// Get AutoHotkey.exe path (with quotes).
+				GetModuleFileName(NULL, exe_path, 1024);
+				lstrcpy(ahk_path, exe_path);
+				
+				aPtr = strrchr(ahk_path, '\\');
+				lstrcpy(aPtr, "\\profile.ahk");
+
+				aPtr = strrchr(exe_path, '\\');
+				lstrcpy(aPtr, "\\AutoHotkey.exe");
+
+				WIN32_FIND_DATA FindFileData1, FindFileData2;
+				HANDLE hFind_exe, hFind_ahk;
+				hFind_exe = FindFirstFile(exe_path, &FindFileData1);
+				hFind_ahk = FindFirstFile(ahk_path, &FindFileData2);
+				if ((hFind_exe != INVALID_HANDLE_VALUE) && (hFind_ahk != INVALID_HANDLE_VALUE)) {
+					// Construct command line.
+					TCHAR cmdLine[2048];
+
+					// First, AutoHotkey path.
+					lstrcpy(cmdLine, "\"");
+					lstrcat(cmdLine, exe_path);
+					lstrcat(cmdLine, "\"");
+
+					// Next, script path.
+					lstrcat(cmdLine, " ");
+					lstrcat(cmdLine, "\"");
+					lstrcat(cmdLine, ahk_path);
+					lstrcat(cmdLine, "\"");
+
+					// Append profile name.
+					lstrcat(cmdLine, " ");
+					lstrcat(cmdLine, "\"");
+					lstrcat(cmdLine, profileName);
+					lstrcat(cmdLine, "\"");
+					
+					// Concatenate EXE and AHK paths.
+					//lstrcat(exe_path, " ");
+					//lstrcat(exe_path, ahk_path);
+					
+					// Impersonate logged in user.
+					HANDLE hProcess, hPToken;
+					DWORD pid = GetExplorerLogonPid();
+					if (pid != 0) {
+						hProcess = OpenProcess(MAXIMUM_ALLOWED, FALSE, pid);
+						if (!OpenProcessToken(hProcess, TOKEN_ADJUST_PRIVILEGES|TOKEN_QUERY
+									|TOKEN_DUPLICATE|TOKEN_ASSIGN_PRIMARY|TOKEN_ADJUST_SESSIONID
+									|TOKEN_READ|TOKEN_WRITE, &hPToken)) {
+							vnclog.Print(LL_INTERR, VNCLOG("%%%%%%%%%%%%% vncClient::DoFTUserImpersonation - OpenProcessToken Error\n"));
+							break;
+						}
+						else {
+							if (!ImpersonateLoggedOnUser(hPToken)) {
+								vnclog.Print(LL_INTERR, VNCLOG("%%%%%%%%%%%%% vncClient::DoFTUserImpersonation - ImpersonateLoggedOnUser Failed\n"));
+								break;
+							}
+
+							STARTUPINFO          StartUPInfo;
+							PROCESS_INFORMATION  ProcessInfo;
+							PVOID                lpEnvironment = NULL;
+							ZeroMemory(&StartUPInfo, sizeof(STARTUPINFO));
+							ZeroMemory(&ProcessInfo, sizeof(PROCESS_INFORMATION));
+							StartUPInfo.wShowWindow = SW_SHOW;
+							StartUPInfo.lpDesktop = "Winsta0\\Default";
+							StartUPInfo.cb = sizeof(STARTUPINFO);
+							CreateEnvironmentBlock(&lpEnvironment, hPToken, FALSE);
+							CreateProcessAsUser(hPToken, NULL, cmdLine, NULL, NULL, FALSE, DETACHED_PROCESS | CREATE_UNICODE_ENVIRONMENT, lpEnvironment, NULL, &StartUPInfo, &ProcessInfo);
+							DWORD error=GetLastError();
+							if (lpEnvironment) DestroyEnvironmentBlock(lpEnvironment);
+							RevertToSelf();
+						}
+
+						CloseHandle(hProcess);
+						CloseHandle(hPToken);
+					}
+				}				
+
+				free(profileName);
+				free(buffer);
+			}
+			break;
+
 		case rfbKeyEvent:
 			// Read the rest of the message:
 			if (m_socket->ReadExact(((char *) &msg)+nTO, sz_rfbKeyEventMsg-nTO))
@@ -1892,7 +1993,7 @@ vncClientThread::run(void *arg)
 						evt.type = INPUT_KEYBOARD;
 						evt.ki.wVk = (unsigned short)msg.ke.key;
 						evt.ki.dwFlags = 0;
-						if (msg.ke.down == 0) evt.ki.dwFlags |= KEYEVENTF_KEYUP;
+						if ((msg.ke.down & 0x01) == 0) evt.ki.dwFlags |= KEYEVENTF_KEYUP;
 						evt.ki.time = 0;
 						evt.ki.wScan = 0;
 						evt.ki.dwExtraInfo = 0;
@@ -1917,7 +2018,7 @@ vncClientThread::run(void *arg)
 						evt.type = INPUT_KEYBOARD;
 						evt.ki.wVk = 0;
 						evt.ki.dwFlags = KEYEVENTF_UNICODE;
-						if (msg.ke.down == 0) evt.ki.dwFlags |= KEYEVENTF_KEYUP;
+						if ((msg.ke.down & 0x01) == 0) evt.ki.dwFlags |= KEYEVENTF_KEYUP;
 						evt.ki.time = 0;
 						evt.ki.wScan = (unsigned short)msg.ke.key;
 						evt.ki.dwExtraInfo = 0;
@@ -2000,6 +2101,14 @@ vncClientThread::run(void *arg)
 						if (msg.pe.buttonMask & rfbWheelDownMask) {
 							flags |= MOUSEEVENTF_WHEEL;
 							wheel_movement = -WHEEL_DELTA;
+						}
+						if (msg.pe.buttonMask & rfbButton6Mask) {
+							flags |= 0x01000;
+							wheel_movement = -WHEEL_DELTA;
+						}
+						if (msg.pe.buttonMask & rfbButton7Mask) {
+							flags |= 0x01000;
+							wheel_movement = WHEEL_DELTA;
 						}
 					}
 
