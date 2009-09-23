@@ -4,7 +4,7 @@
 
 bool Copy_to_Temp(char *tempfile);
 bool Copy_to_Secure_from_temp(char *tempfile);
-#define INIFILE_NAME "ultravnc.ini"
+#define INIFILE_NAME "HippoVNC.ini"
 
 class IniFile
 {
