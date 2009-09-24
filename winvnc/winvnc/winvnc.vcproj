@@ -81,7 +81,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="ws2_32.lib winmm.lib version.lib wtsapi32.lib userenv.lib"
-				OutputFile=".\..\Debug/HippoVNC.exe"
+				OutputFile=".\..\Debug/WinVNC.exe"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories=""
@@ -281,7 +281,7 @@
 				Name="VCLinkerTool"
 				AdditionalOptions="/LTCG"
 				AdditionalDependencies="wsock32.lib winmm.lib version.lib comctl32.lib wtsapi32.lib userenv.lib"
-				OutputFile=".\..\Release/HippoVNC.exe"
+				OutputFile=".\..\Release/WinVNC.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				GenerateManifest="true"
@@ -4279,6 +4279,18 @@
 				>
 			</File>
 			<File
+				RelativePath=".\res\Hippo_1.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\res\Hippo_2.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\res\Hippo_64.bmp"
+				>
+			</File>
+			<File
 				RelativePath="res\ico00001.ico"
 				>
 			</File>
@@ -4315,11 +4327,11 @@
 				>
 			</File>
 			<File
-				RelativePath="res\vnc.bmp"
+				RelativePath="vnc.bmp"
 				>
 			</File>
 			<File
-				RelativePath="vnc.bmp"
+				RelativePath="res\vnc.bmp"
 				>
 			</File>
 			<File
@@ -4360,11 +4372,11 @@
 			>
 		</File>
 		<File
-			RelativePath="..\building.txt"
+			RelativePath="..\..\BUILDING.txt"
 			>
 		</File>
 		<File
-			RelativePath="..\..\BUILDING.txt"
+			RelativePath="..\building.txt"
 			>
 		</File>
 		<File

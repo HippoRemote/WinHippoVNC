@@ -14,8 +14,8 @@ HANDLE stopServiceEvent=0;
 extern HANDLE hEvent;
 static char service_path[MAX_PATH];
 void monitor_sessions();
-char service_name[256]="uvnc_service";
-char *app_name = "UltraVNC";
+char service_name[256]="hippovnc_service";
+char *app_name = "HippoVNC";
 void disconnect_remote_sessions();
 char cmdtext[256];
 bool IsWin2000()

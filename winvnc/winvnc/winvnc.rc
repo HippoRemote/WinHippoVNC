@@ -664,15 +664,15 @@ END
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-IDI_WINVNC              ICON                    "res\\world3a.ico"
-IDI_FLASH               ICON                    "res\\icon2.ico"
+IDI_WINVNC              ICON                    "res\\Hippo_1.ico"
+IDI_FLASH               ICON                    "res\\Hippo_2.ico"
 
 /////////////////////////////////////////////////////////////////////////////
 //
 // Bitmap
 //
 
-IDB_LOGO64              BITMAP                  "res\\vnc-1.bmp"
+IDB_LOGO64              BITMAP                  "res\\Hippo_64.bmp"
 IDB_BITMAP3             BITMAP                  "res\\runas.bmp"
 #endif    // Dutch (Belgium) resources
 /////////////////////////////////////////////////////////////////////////////
