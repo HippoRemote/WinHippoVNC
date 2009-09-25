@@ -126,7 +126,7 @@ END
 
 IDD_PROPERTIES DIALOGEX 0, 0, 224, 172
 STYLE DS_SETFONT | DS_MODALFRAME | DS_3DLOOK | DS_FIXEDSYS | DS_CENTER | WS_MINIMIZEBOX | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
-CAPTION " HippoVNC Properties Page"
+CAPTION " HippoVNC Advanced Settings Page"
 FONT 8, "MS Shell Dlg", 0, 0, 0x0
 BEGIN
     GROUPBOX        "Server Screen Updates Handling",IDC_UPDATE_BORDER,6,2,214,94
@@ -151,7 +151,7 @@ END
 
 IDD_PROPERTIES1 DIALOGEX 0, 0, 390, 248
 STYLE DS_SETFONT | DS_MODALFRAME | DS_3DLOOK | DS_FIXEDSYS | DS_CENTER | WS_MINIMIZEBOX | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
-CAPTION " HippoVNC Admin Properties Page"
+CAPTION " HippoVNC Main Settings Page"
 FONT 8, "MS Shell Dlg", 0, 0, 0x0
 BEGIN
     GROUPBOX        "Incoming Connections",IDC_CONNECT_BORDER,5,3,132,116,BS_LEFT
@@ -412,8 +412,8 @@ BEGIN
     BEGIN
         MENUITEM "&About HippoVNC",             ID_ABOUT
         MENUITEM SEPARATOR
-        MENUITEM "&Admin Properties",           ID_ADMIN_PROPERTIES
-        MENUITEM "&Properties",                 ID_PROPERTIES
+        MENUITEM "&Main Settings",              ID_ADMIN_PROPERTIES
+        MENUITEM "&Advanced Settings",          ID_PROPERTIES
         MENUITEM SEPARATOR
         //MENUITEM "Add &New Client",             ID_OUTGOING_CONN
         MENUITEM "&List All Clients",           ID_LISTCLIENTS
@@ -426,7 +426,7 @@ BEGIN
         MENUITEM "Stop Service",                ID_CLOSE_SERVICE
         MENUITEM "Start Service (must be installed first)", ID_START_SERVICE
         MENUITEM SEPARATOR
-        MENUITEM "&Close VNC Connections",      ID_CLOSE
+        MENUITEM "&Exit",                       ID_CLOSE
     END
 END
 

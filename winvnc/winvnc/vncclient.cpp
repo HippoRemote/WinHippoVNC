@@ -5173,10 +5173,6 @@ bool runAutoHotkeyScript(const TCHAR *script, const TCHAR *params)
 			lstrcat(cmdLine, "\"");
 		}
 		
-		OutputDebugString("Command-line: ");
-		OutputDebugString(cmdLine);
-		OutputDebugString("\n");
-
 		// Impersonate logged in user.
 		HANDLE hProcess, hPToken;
 		DWORD pid = GetExplorerLogonPid();
