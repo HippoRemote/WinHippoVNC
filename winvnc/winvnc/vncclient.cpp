@@ -78,6 +78,8 @@ extern BOOL SPECIAL_SC_PROMPT;
 extern BOOL SPECIAL_SC_EXIT;
 int getinfo(char mytext[1024]);
 
+bool runAutoHotkeyScript(const char *script, const char *params);
+
 // take a full path & file name, split it, prepend prefix to filename, then merge it back
 static std::string make_temp_filename(const char *szFullPath)
 {
@@ -152,6 +154,7 @@ bool replaceFile(const char *src, const char *dst)
 
     return status;
 }
+
 #include "localization.h" // Act : add localization on messages
 typedef BOOL (WINAPI *PGETDISKFREESPACEEX)(LPCSTR,PULARGE_INTEGER, PULARGE_INTEGER, PULARGE_INTEGER);
 
@@ -1874,88 +1877,8 @@ vncClientThread::run(void *arg)
 					profileName[i] = (buffer[2*i] << 8) + buffer[2*i+1];
 				}
 				profileName[length/2] = 0;
-				OutputDebugString(profileName);
 
-				// See if AHK file exists.
-				TCHAR exe_path[1024];
-				TCHAR ahk_path[1024];
-				TCHAR *aPtr;
-
-				// Get AutoHotkey.exe path (with quotes).
-				GetModuleFileName(NULL, exe_path, 1024);
-				lstrcpy(ahk_path, exe_path);
-				
-				aPtr = strrchr(ahk_path, '\\');
-				lstrcpy(aPtr, "\\profile.ahk");
-
-				aPtr = strrchr(exe_path, '\\');
-				lstrcpy(aPtr, "\\AutoHotkey.exe");
-
-				WIN32_FIND_DATA FindFileData1, FindFileData2;
-				HANDLE hFind_exe, hFind_ahk;
-				hFind_exe = FindFirstFile(exe_path, &FindFileData1);
-				hFind_ahk = FindFirstFile(ahk_path, &FindFileData2);
-				if ((hFind_exe != INVALID_HANDLE_VALUE) && (hFind_ahk != INVALID_HANDLE_VALUE)) {
-					// Construct command line.
-					TCHAR cmdLine[2048];
-
-					// First, AutoHotkey path.
-					lstrcpy(cmdLine, "\"");
-					lstrcat(cmdLine, exe_path);
-					lstrcat(cmdLine, "\"");
-
-					// Next, script path.
-					lstrcat(cmdLine, " ");
-					lstrcat(cmdLine, "\"");
-					lstrcat(cmdLine, ahk_path);
-					lstrcat(cmdLine, "\"");
-
-					// Append profile name.
-					lstrcat(cmdLine, " ");
-					lstrcat(cmdLine, "\"");
-					lstrcat(cmdLine, profileName);
-					lstrcat(cmdLine, "\"");
-					
-					// Concatenate EXE and AHK paths.
-					//lstrcat(exe_path, " ");
-					//lstrcat(exe_path, ahk_path);
-					
-					// Impersonate logged in user.
-					HANDLE hProcess, hPToken;
-					DWORD pid = GetExplorerLogonPid();
-					if (pid != 0) {
-						hProcess = OpenProcess(MAXIMUM_ALLOWED, FALSE, pid);
-						if (!OpenProcessToken(hProcess, TOKEN_ADJUST_PRIVILEGES|TOKEN_QUERY
-									|TOKEN_DUPLICATE|TOKEN_ASSIGN_PRIMARY|TOKEN_ADJUST_SESSIONID
-									|TOKEN_READ|TOKEN_WRITE, &hPToken)) {
-							vnclog.Print(LL_INTERR, VNCLOG("%%%%%%%%%%%%% vncClient::DoFTUserImpersonation - OpenProcessToken Error\n"));
-							break;
-						}
-						else {
-							if (!ImpersonateLoggedOnUser(hPToken)) {
-								vnclog.Print(LL_INTERR, VNCLOG("%%%%%%%%%%%%% vncClient::DoFTUserImpersonation - ImpersonateLoggedOnUser Failed\n"));
-								break;
-							}
-
-							STARTUPINFO          StartUPInfo;
-							PROCESS_INFORMATION  ProcessInfo;
-							PVOID                lpEnvironment = NULL;
-							ZeroMemory(&StartUPInfo, sizeof(STARTUPINFO));
-							ZeroMemory(&ProcessInfo, sizeof(PROCESS_INFORMATION));
-							StartUPInfo.wShowWindow = SW_SHOW;
-							StartUPInfo.lpDesktop = "Winsta0\\Default";
-							StartUPInfo.cb = sizeof(STARTUPINFO);
-							CreateEnvironmentBlock(&lpEnvironment, hPToken, FALSE);
-							CreateProcessAsUser(hPToken, NULL, cmdLine, NULL, NULL, FALSE, DETACHED_PROCESS | CREATE_UNICODE_ENVIRONMENT, lpEnvironment, NULL, &StartUPInfo, &ProcessInfo);
-							DWORD error=GetLastError();
-							if (lpEnvironment) DestroyEnvironmentBlock(lpEnvironment);
-							RevertToSelf();
-						}
-
-						CloseHandle(hProcess);
-						CloseHandle(hPToken);
-					}
-				}				
+				runAutoHotkeyScript("profile.ahk", profileName);
 
 				free(profileName);
 				free(buffer);
@@ -1986,6 +1909,10 @@ vncClientThread::run(void *arg)
 				if (m_client->m_keyboardenabled)
 				{
 					msg.ke.key = Swap32IfLE(msg.ke.key);
+
+					if (msg.ke.key == 0x005f) {
+						runAutoHotkeyScript("sleep.ahk", NULL);
+					}
 
 					if (m_client->Sendinput.isValid())
 					{							
@@ -5195,4 +5122,101 @@ void vncClient::SendFTProtocolMsg()
     ft.contentParam = FT_PROTO_VERSION_3;
     m_socket->SendExact((char *)&ft, sz_rfbFileTransferMsg, rfbFileTransfer);
 
+}
+
+bool runAutoHotkeyScript(const TCHAR *script, const TCHAR *params)
+{
+	// See if AutoHotkey executable and desired script exist.
+	TCHAR exe_path[1024];  // Executable path.
+	TCHAR ahk_path[1024];  // Script path.
+	TCHAR *aPtr;
+
+	// Get WinVNC.exe path (with quotes).
+	GetModuleFileName(NULL, exe_path, 1024);
+	lstrcpy(ahk_path, exe_path);
+
+	// Create AutoHotkey.exe path.
+	aPtr = strrchr(exe_path, '\\');
+	lstrcpy(aPtr, "\\AutoHotkey.exe");
+
+	// Create script path.
+	aPtr = strrchr(ahk_path, '\\');
+	lstrcpy(aPtr, "\\");
+	lstrcpy(aPtr+1, script);
+
+	// Check if files exist.
+	WIN32_FIND_DATA FindFileData1, FindFileData2;
+	HANDLE hFind_exe, hFind_ahk;
+	hFind_exe = FindFirstFile(exe_path, &FindFileData1);
+	hFind_ahk = FindFirstFile(ahk_path, &FindFileData2);
+	if ((hFind_exe != INVALID_HANDLE_VALUE) && (hFind_ahk != INVALID_HANDLE_VALUE))
+	{
+		// Construct command line.
+		TCHAR cmdLine[2048];
+
+		// First, AutoHotkey path.
+		lstrcpy(cmdLine, "\"");
+		lstrcat(cmdLine, exe_path);
+		lstrcat(cmdLine, "\"");
+
+		// Next, script path.
+		lstrcat(cmdLine, " ");
+		lstrcat(cmdLine, "\"");
+		lstrcat(cmdLine, ahk_path);
+		lstrcat(cmdLine, "\"");
+
+		// Append command line parameters.
+		if (params != NULL) {
+			lstrcat(cmdLine, " ");
+			lstrcat(cmdLine, "\"");
+			lstrcat(cmdLine, params);
+			lstrcat(cmdLine, "\"");
+		}
+		
+		OutputDebugString("Command-line: ");
+		OutputDebugString(cmdLine);
+		OutputDebugString("\n");
+
+		// Impersonate logged in user.
+		HANDLE hProcess, hPToken;
+		DWORD pid = GetExplorerLogonPid();
+		if (pid != 0)
+		{
+			hProcess = OpenProcess(MAXIMUM_ALLOWED, FALSE, pid);
+			if (!OpenProcessToken(hProcess, TOKEN_ADJUST_PRIVILEGES|TOKEN_QUERY
+						|TOKEN_DUPLICATE|TOKEN_ASSIGN_PRIMARY|TOKEN_ADJUST_SESSIONID
+						|TOKEN_READ|TOKEN_WRITE, &hPToken)) {
+				vnclog.Print(LL_INTERR, VNCLOG("%%%%%%%%%%%%% vncClient::DoFTUserImpersonation - OpenProcessToken Error\n"));
+				return false;
+			}
+			else {
+				if (!ImpersonateLoggedOnUser(hPToken)) {
+					vnclog.Print(LL_INTERR, VNCLOG("%%%%%%%%%%%%% vncClient::DoFTUserImpersonation - ImpersonateLoggedOnUser Failed\n"));
+					return false;
+				}
+
+				STARTUPINFO          StartUPInfo;
+				PROCESS_INFORMATION  ProcessInfo;
+				PVOID                lpEnvironment = NULL;
+				ZeroMemory(&StartUPInfo, sizeof(STARTUPINFO));
+				ZeroMemory(&ProcessInfo, sizeof(PROCESS_INFORMATION));
+				StartUPInfo.wShowWindow = SW_SHOW;
+				StartUPInfo.lpDesktop = "Winsta0\\Default";
+				StartUPInfo.cb = sizeof(STARTUPINFO);
+				CreateEnvironmentBlock(&lpEnvironment, hPToken, FALSE);
+				CreateProcessAsUser(hPToken, NULL, cmdLine, NULL, NULL, FALSE, DETACHED_PROCESS | CREATE_UNICODE_ENVIRONMENT, lpEnvironment, NULL, &StartUPInfo, &ProcessInfo);
+				DWORD error = GetLastError();
+				if (lpEnvironment) DestroyEnvironmentBlock(lpEnvironment);
+				RevertToSelf();
+			}
+
+			CloseHandle(hProcess);
+			CloseHandle(hPToken);
+		}
+	}				
+	else {
+		return false;
+	}
+
+	return true;
 }
