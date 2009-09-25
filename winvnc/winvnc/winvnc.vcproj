@@ -4102,10 +4102,6 @@
 				>
 			</File>
 			<File
-				RelativePath="vnc.hh"
-				>
-			</File>
-			<File
 				RelativePath="vncabout.h"
 				>
 			</File>
@@ -4259,14 +4255,6 @@
 			Filter="ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
 			>
 			<File
-				RelativePath="res\background.bmp"
-				>
-			</File>
-			<File
-				RelativePath="res\background2.bmp"
-				>
-			</File>
-			<File
 				RelativePath="res\clipboardframe.class"
 				>
 			</File>
@@ -4291,14 +4279,6 @@
 				>
 			</File>
 			<File
-				RelativePath="res\ico00001.ico"
-				>
-			</File>
-			<File
-				RelativePath="res\icon1.ico"
-				>
-			</File>
-			<File
 				RelativePath="res\icon2.ico"
 				>
 			</File>
@@ -4315,27 +4295,7 @@
 				>
 			</File>
 			<File
-				RelativePath="res\vdacc.bmp"
-				>
-			</File>
-			<File
 				RelativePath="res\vnc-1.bmp"
-				>
-			</File>
-			<File
-				RelativePath="res\vnc-1.ico"
-				>
-			</File>
-			<File
-				RelativePath="vnc.bmp"
-				>
-			</File>
-			<File
-				RelativePath="res\vnc.bmp"
-				>
-			</File>
-			<File
-				RelativePath="res\vnc64.BMP"
 				>
 			</File>
 			<File
@@ -4351,19 +4311,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\winvnc.exe.x86.manifest"
-				>
-			</File>
-			<File
-				RelativePath="res\winvnc.ico"
-				>
-			</File>
-			<File
 				RelativePath="res\world3a.ico"
-				>
-			</File>
-			<File
-				RelativePath="res\ww-grn-sq2.ico"
 				>
 			</File>
 		</Filter>
@@ -4372,11 +4320,11 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\BUILDING.txt"
+			RelativePath="..\building.txt"
 			>
 		</File>
 		<File
-			RelativePath="..\building.txt"
+			RelativePath="..\..\BUILDING.txt"
 			>
 		</File>
 		<File
