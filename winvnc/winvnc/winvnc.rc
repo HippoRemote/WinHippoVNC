@@ -87,7 +87,7 @@ FONT 8, "MS Shell Dlg", 0, 0, 0x1
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,8,135,54,16
     CONTROL         139,IDC_VNCLOGO,"Static",SS_BITMAP | SS_CENTERIMAGE | SS_SUNKEN,7,5,53,46,WS_EX_TRANSPARENT
-    LTEXT           "HippoVNC 0.2.0",IDC_VERSION,73,5,195,11
+    LTEXT           "HippoVNC 0.2.1",IDC_VERSION,73,5,195,11
     LTEXT           "Copyright © 2009 RoboHippo LLC\nCopyright © 2002-2009 Ultr@VNC Team\nCopyright © 2001-2002 Sam - eSVNC \nCopyright © 1999-2002 Rudi D. V. - VdaccVNC \nCopyright © 2001 Harakan Software - PalmVNC\nCopyright © 1999-2002 Const. Kaplinsky - TightVNC \n",IDC_NAME,74,27,202,41
 	LTEXT           "HippoVNC is derived from UltraVNC (http://uvnc.com).\nVisit http://hipporemote.com for news and updates.",IDC_WWW,74,135,200,19
     LTEXT           "Build:",IDC_BUILDTEXT,74,16,20,10
@@ -365,7 +365,7 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,2,0,0
+ FILEVERSION 0,2,1,0
  //PRODUCTVERSION 1,0,6,4
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
@@ -384,14 +384,14 @@ BEGIN
             //VALUE "Comments", "UltraVNC - Remote Control for all"
             VALUE "CompanyName", "RoboHippo LLC"
             VALUE "FileDescription", "HippoVNC"
-            VALUE "FileVersion", "0.2.0.0"
+            VALUE "FileVersion", "0.2.1.0"
             VALUE "InternalName", "HippoVNC"
             VALUE "LegalCopyright", "Copyright © 2009 RoboHippo LLC"
             VALUE "LegalTrademarks", "VNC"
             VALUE "OriginalFilename", "HippoVNC.exe"
             //VALUE "PrivateBuild", "1.0.6.4"
             VALUE "ProductName", "HippoVNC"
-            VALUE "ProductVersion", "0.2.0"
+            VALUE "ProductVersion", "0.2.1"
         END
     END
     BLOCK "VarFileInfo"

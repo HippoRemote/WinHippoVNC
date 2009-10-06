@@ -2147,93 +2147,48 @@ vncClientThread::run(void *arg)
 						    ? MOUSEEVENTF_RIGHTDOWN : MOUSEEVENTF_RIGHTUP;
 					}
 
-
-					// Treat buttons 4 and 5 presses as mouse wheel events
+					// Treat buttons 4, 5, 6 and 7 as mouse wheel events
 					DWORD wheel_movement = 0;
-					if (m_client->m_encodemgr.IsMouseWheelTight())
-					{
-						if ((msg.pe.buttonMask & rfbButton4Mask) != 0 &&
-							(m_client->m_ptrevent.buttonMask & rfbButton4Mask) == 0)
-						{
-							flags |= MOUSEEVENTF_WHEEL;
-							wheel_movement = (DWORD)+120;
-						}
-						else if ((msg.pe.buttonMask & rfbButton5Mask) != 0 &&
-								 (m_client->m_ptrevent.buttonMask & rfbButton5Mask) == 0)
-						{
-							flags |= MOUSEEVENTF_WHEEL;
-							wheel_movement = (DWORD)-120;
-						}
+					if (msg.pe.buttonMask & rfbWheelUpMask) {
+						flags |= MOUSEEVENTF_WHEEL;
+						wheel_movement = WHEEL_DELTA;
 					}
-					else
-					{
-						// RealVNC 335 Mouse wheel support
-						if (msg.pe.buttonMask & rfbWheelUpMask) {
-							flags |= MOUSEEVENTF_WHEEL;
-							wheel_movement = WHEEL_DELTA;
-						}
-						if (msg.pe.buttonMask & rfbWheelDownMask) {
-							flags |= MOUSEEVENTF_WHEEL;
-							wheel_movement = -WHEEL_DELTA;
-						}
+					if (msg.pe.buttonMask & rfbWheelDownMask) {
+						flags |= MOUSEEVENTF_WHEEL;
+						wheel_movement = -WHEEL_DELTA;
+					}
+					if (msg.pe.buttonMask & rfbButton6Mask) {
+						flags |= 0x01000;
+						wheel_movement = -WHEEL_DELTA;
+					}
+					if (msg.pe.buttonMask & rfbButton7Mask) {
+						flags |= 0x01000;
+						wheel_movement = WHEEL_DELTA;
 					}
 
-					// Generate coordinate values
-					// bug fix John Latino
-					// offset for multi display
-					int screenX, screenY, screenDepth;
-					m_server->GetScreenInfo(screenX, screenY, screenDepth);
-//					vnclog.Print(LL_INTINFO, VNCLOG("########mouse :%i %i %i %i \n"),screenX, screenY,m_client->m_ScreenOffsetx,m_client->m_ScreenOffsety );
-					if (m_client->m_display_type==1)
-						{//primary display always have (0,0) as corner
-							//unsigned long x = (msg.pe.x *  65535) / (screenX-1);
-							//unsigned long y = (msg.pe.y * 65535) / (screenY-1);
-							signed long x = msg.pe.x - 32768;
-							signed long y = msg.pe.y - 32768;
-							// Do the pointer event
-							::mouse_event(flags, (DWORD) x, (DWORD) y, wheel_movement, 0);
-//							vnclog.Print(LL_INTINFO, VNCLOG("########mouse_event :%i %i \n"),x,y);
-						}
-					else
-						{//second or spanned
-							if (m_client->Sendinput.isValid())
-							{							
-								INPUT evt;
-								evt.type = INPUT_MOUSE;
-								msg.pe.x=msg.pe.x-GetSystemMetrics(SM_XVIRTUALSCREEN);
-								msg.pe.y=msg.pe.y-GetSystemMetrics(SM_YVIRTUALSCREEN);
-								//evt.mi.dx = ((msg.pe.x-1000) * 65535) / (GetSystemMetrics(SM_CXVIRTUALSCREEN)-1);
-								//evt.mi.dy = ((msg.pe.y-1000) * 65535) / (GetSystemMetrics(SM_CYVIRTUALSCREEN)-1);
-								evt.mi.dx = msg.pe.x - 32768;
-								evt.mi.dy = msg.pe.y - 32768;
-								evt.mi.dwFlags = flags | MOUSEEVENTF_VIRTUALDESK;
-								evt.mi.dwExtraInfo = 0;
-								evt.mi.mouseData = wheel_movement;
-								evt.mi.time = 0;
-								(*m_client->Sendinput)(1, &evt, sizeof(evt));
-							}
-							else
-							{
-								POINT cursorPos; GetCursorPos(&cursorPos);
-								ULONG oldSpeed, newSpeed = 10;
-								ULONG mouseInfo[3];
-								if (flags & MOUSEEVENTF_MOVE) 
-									{
-										flags &= ~MOUSEEVENTF_ABSOLUTE;
-										SystemParametersInfo(SPI_GETMOUSE, 0, &mouseInfo, 0);
-										SystemParametersInfo(SPI_GETMOUSESPEED, 0, &oldSpeed, 0);
-										ULONG idealMouseInfo[] = {10, 0, 0};
-										SystemParametersInfo(SPI_SETMOUSESPEED, 0, &newSpeed, 0);
-										SystemParametersInfo(SPI_SETMOUSE, 0, &idealMouseInfo, 0);
-									}
-								::mouse_event(flags, msg.pe.x-cursorPos.x, msg.pe.y-cursorPos.y, wheel_movement, 0);
-								if (flags & MOUSEEVENTF_MOVE) 
-									{
-										SystemParametersInfo(SPI_SETMOUSE, 0, &mouseInfo, 0);
-										SystemParametersInfo(SPI_SETMOUSESPEED, 0, &oldSpeed, 0);
-									}
-							}
+					// Generate the input event
+					if (0)
+					//if (m_client->m_display_type==1)
+					{//primary display always have (0,0) as corner
+						signed long x = msg.pe.x - 32768;
+						signed long y = msg.pe.y - 32768;
+						// Do the pointer event
+						::mouse_event(flags, (DWORD) x, (DWORD) y, wheel_movement, 0);
+						//vnclog.Print(LL_INTINFO, VNCLOG("########mouse_event :%i %i \n"),x,y);
 					}
+					else
+					{//second or spanned
+						INPUT evt;
+						evt.type = INPUT_MOUSE;
+						evt.mi.dx = msg.pe.x - 32768;
+						evt.mi.dy = msg.pe.y - 32768;
+						evt.mi.dwFlags = flags;
+						evt.mi.dwExtraInfo = 0;
+						evt.mi.mouseData = wheel_movement;
+						evt.mi.time = 0;
+						SendInput(1, &evt, sizeof(evt));
+					}
+
 					// Save the old position
 					m_client->m_ptrevent = msg.pe;
 

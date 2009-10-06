@@ -7,8 +7,11 @@ HippoVNC is a fork of UltraVNC. The purpose of the fork is to extend VNC with fe
 
 ##Version History
 
+* **0.2.1**
+	* [FIXED] Issue with delta pointer events and dual monitor setups.
+
 * **0.2.0**
-	* [NEW] Added support for delta mouse movement instead of absolute mouse movement.
+	* [NEW] Added support for delta mouse movement instead of absolute mouse. movement.
 	* [NEW] Added support for unicode characters.
 	* [NEW] Added support for AutoHotkey-based app launching and switching.
 	
