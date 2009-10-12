@@ -2167,7 +2167,7 @@ vncClientThread::run(void *arg)
 					}
 
 					// Generate the input event
-					if (0)
+					if (1)
 					//if (m_client->m_display_type==1)
 					{//primary display always have (0,0) as corner
 						signed long x = msg.pe.x - 32768;
